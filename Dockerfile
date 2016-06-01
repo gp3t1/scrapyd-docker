@@ -35,7 +35,7 @@ RUN pip install \
 COPY etc/* /etc/
 COPY bin/* /usr/local/bin/
 RUN	chmod 640 /etc/supervisord.conf
-RUN chmod +x /usr/local/bin/*
+RUN chmod +x,go-w /usr/local/bin/*
 
 WORKDIR "/var/lib/scrapyd"
 

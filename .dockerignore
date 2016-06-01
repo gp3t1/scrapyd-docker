@@ -1,4 +1,6 @@
 **/*.pyc
 **/*.log
 **/scrapyd.sublime-*
+**/.gitignore
 **/__pycache__
+**/README.md

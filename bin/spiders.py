@@ -360,9 +360,14 @@ def initSpiders():
         the spiders specified in spiders.json
     """
     sCtx = __SpidersCtx__()
-    while not sCtx.isScrapydUp():
+    while True:
         logging.warning("initSpiders - Waiting for scrapyd...")
         time.sleep(2)
+        if sCtx.isScrapydUp():
+            break
+    # while not sCtx.isScrapydUp():
+    #     logging.warning("initSpiders - Waiting for scrapyd...")
+    #     time.sleep(2)
     sCtx.cleanCronTab()
     with open(sCtx.spiders_json(), 'r') as f:
         json_obj = json.load(f)
