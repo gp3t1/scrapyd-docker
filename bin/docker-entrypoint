@@ -1,0 +1,149 @@
+#!/bin/sh
+
+export SCRAPYD_API="http://localhost:6800/"
+export SCRAPYD_CONF="/etc/scrapyd"
+export SCRAPYD_INSTALL="/var/lib/scrapyd"
+export SCRAPYD_LOGS="$SCRAPYD_INSTALL/logs"
+export EXPORT_PATH="$SCRAPYD_INSTALL/http_files"
+export SPIDERS_PATH="$SCRAPYD_INSTALL/spiders"
+export SUPERVISOR_LOGS="/var/log/supervisor"
+
+createUserAndPaths() {
+	if ! egrep -q "^${SCRAPYD_USER}:x:999:${SCRAPYD_USER}$" /etc/group; then
+		u_home="/home/${SCRAPYD_USER}"
+		printf "\nCreate user %s..." "${SCRAPYD_USER}:${SCRAPYD_USER}"
+		addgroup -g 999 "${SCRAPYD_USER}" || printf "\nFail to create group!"
+		adduser -h "$u_home" -u 999 -G "${SCRAPYD_USER}" -s "/bin/sh" -D "${SCRAPYD_USER}" || printf "\nFail to create user!"
+		curl -sSL "https://github.com/scrapy/scrapy/raw/master/extras/scrapy_bash_completion" >> "$u_home/.bashrc"
+		#touch "${SPIDERS_CRON}"
+		#crontab -u "${SCRAPYD_USER}" "${SPIDERS_CRON}"
+		mkdir -p "$SCRAPYD_INSTALL/eggs" "$SCRAPYD_INSTALL/dbs" "$SCRAPYD_INSTALL/logs" "$EXPORT_PATH" "$SPIDERS_PATH" "$SUPERVISOR_LOGS"
+		chown -R "${SCRAPYD_USER}:${SCRAPYD_USER}" "${SCRAPYD_CONF}" "${SCRAPYD_INSTALL}" "${SPIDERS_PATH}" "${EXPORT_PATH}" "$u_home" "$SUPERVISOR_LOGS/scrapyd" # "${SPIDERS_CRON}"
+		
+		{
+			echo "export SCRAPYD_USER=\"${SCRAPYD_USER}\""
+		 	echo "export SCRAPYD_API=\"${SCRAPYD_API}\""
+			echo "export SCRAPYD_CONF=\"${SCRAPYD_CONF}\""
+			echo "export SCRAPYD_INSTALL=\"${SCRAPYD_INSTALL}\""
+			echo "export SCRAPYD_LOGS=\"${SCRAPYD_LOGS}\""
+			echo "export EXPORT_PATH=\"${EXPORT_PATH}\""
+			echo "export SPIDERS_PATH=\"${SPIDERS_PATH}\""
+			echo "export SUPERVISOR_LOGS=\"${SUPERVISOR_LOGS}\""
+		} >> /etc/profile
+	fi
+}
+
+writeScrapydConfig() {
+	if test ! -f "$SCRAPYD_CONF/scrapyd.conf"; then
+		printf "\nWriting %s/scrapyd.conf..." "$SCRAPYD_CONF"
+		# items_dir   = $SCRAPYD_INSTALL/items
+		cat > "$SCRAPYD_CONF/scrapyd.conf" <<-EOF
+		[scrapyd]
+		bind_address = 0.0.0.0
+		http_port   = 6800
+		eggs_dir    = $SCRAPYD_INSTALL/eggs
+		dbs_dir     = $SCRAPYD_INSTALL/dbs
+		logs_dir    = $SCRAPYD_LOGS
+		logs_filename = {project}/{spider}-{job}.{Y}{m}{d}.{H}{M}{S}.log
+		jobs_to_keep = 5
+		finished_to_keep = 100
+		max_proc    = 0
+		max_proc_per_cpu = 4
+		poll_interval = 5
+		debug       = off
+		runner      = scrapyd.runner
+		application = scrapyd.app.application
+		launcher    = scrapyd.launcher.Launcher
+		webroot     = scrapyd.website.Root
+
+		[services]
+		schedule.json     = scrapyd.webservice.Schedule
+		cancel.json       = scrapyd.webservice.Cancel
+		addversion.json   = scrapyd.webservice.AddVersion
+		listprojects.json = scrapyd.webservice.ListProjects
+		listversions.json = scrapyd.webservice.ListVersions
+		listspiders.json  = scrapyd.webservice.ListSpiders
+		delproject.json   = scrapyd.webservice.DeleteProject
+		delversion.json   = scrapyd.webservice.DeleteVersion
+		listjobs.json     = scrapyd.webservice.ListJobs
+		#daemonstatus.json = scrapyd.webservice.DaemonStatus
+
+		EOF
+	else
+		printf "\nUpdating %s/scrapyd.conf..." "$SCRAPYD_CONF"
+		sed -ri "s|(bind_address[ ]*=)[ ]*.*$|\1 0.0.0.0|;
+						 s|(http_port[ ]*=)[ ]*.*$|\1 6800|;
+						 s|(eggs_dir[ ]*=)[ ]*.*$|\1 $SCRAPYD_INSTALL/eggs|;
+						 s|(dbs_dir[ ]*=)[ ]*.*$|\1 $SCRAPYD_INSTALL/dbs|;
+						 s|(logs_dir[ ]*=)[ ]*.*$|\1 $SCRAPYD_LOGS|" "$SCRAPYD_CONF/scrapyd.conf" 
+	fi
+	chown "${SCRAPYD_USER}:${SCRAPYD_USER}" "$SCRAPYD_CONF/scrapyd.conf"
+	test -f "$SCRAPYD_CONF/scrapyd.conf"
+}
+
+# waitForFile(){
+# 	test -f "$1" && file="$1" || return 1
+#   test -n "$2" && pattern="$2" || return 1
+#   test $3 -gt 0 -a $3 -lt 600 && timeout=$3 || timeout=60
+#   starttime=$(date "+%s")
+  
+#   printf "\nWaiting for %s..." "$file"
+#   while test ! -f "$file" -a $(( $(date "+%s") - starttime )) -lt $timeout; do
+#     sleep 1
+#   done
+#   printf "\nLooking for %s in %s..." "$pattern" "$file"
+#   tail -f -n 30 "$file" | while read line; do
+#     if echo "${line}" | egrep -q "$pattern"; then 
+#       pkill -P $$ tail
+#       printf "\nFound %s !" "$pattern"
+#       return 0
+#     fi
+#     if test $(( $(date "+%s") - starttime )) -gt $timeout; then
+#       printf "\nTimeout(%i)!\n" $timeout
+#       return 2
+#     fi
+#   done
+# }
+
+# registerSpiders() {
+# 	script=$(which spiders.py)
+# 	runp "$script" initSpiders
+# 	return $?
+# }
+
+# installSpiders(){
+# 	printf "\n"
+# 	sleep 5
+# 	# TODO waitForFile <file> <pattern> <10>
+# 	while read -r spider || [[ -n "$spider" ]]; do
+#     deployGitSpider "$spider" || printf "\nError deploying %s" "$spider" 1>&2
+# 	done < "$SPIDERS_FILE"
+# }
+
+print_help() {
+	printf "\nUsage :"
+	printf "\ndocker <create|run [--rm]> -v </host/path/to/scrapyd/config>:%s\
+ -v </host/path/to/scrapyd/data>:%s\
+ -v </host/path/to/logs>:$SUPERVISOR_LOGS\
+ -p <http_port>:8000\
+ -p <scrapyd_api_port>:6800]\
+ --name <my-scrapyd>\
+ <gp3t1/scrapyd[:tag]> <scrapyd|help>" "${SCRAPYD_CONF}" "${SCRAPYD_INSTALL}"
+	printf "\ndocker start|stop|restart my-scrapyd"
+	printf "\n"
+}
+
+main() {
+	case "$1" in
+		scrapyd )
+			createUserAndPaths
+			writeScrapydConfig
+			printf "\n" && exec supervisord -c /etc/supervisord.conf
+			;;
+		help|* )
+			print_help
+			;;
+	esac
+}
+
+main "$@"
