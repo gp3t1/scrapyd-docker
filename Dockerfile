@@ -1,5 +1,5 @@
 FROM python:2-alpine
-MAINTAINER Jeremy PETIT "jeremy.petit@gmail.com"
+MAINTAINER "gp3t1@openmailbox.org"
 
 #  ENVIRONMENT VARIABLES
 ENV SCRAPYD_USER "scrapyd"

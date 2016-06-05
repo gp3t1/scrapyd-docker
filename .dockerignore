@@ -1,6 +1,8 @@
 **/*.pyc
 **/*.log
-**/scrapyd.sublime-*
-**/.gitignore
 **/__pycache__
-**/README.md
+*.sublime-*
+.gitignore
+.git
+README.md
+LICENCE
