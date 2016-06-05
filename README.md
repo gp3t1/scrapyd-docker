@@ -1,6 +1,6 @@
 # scrapyd-docker
 
-[![Current tag](http://img.shields.io/github/tag/gp3t1/scrapyd-docker.svg)](https://github.com/gp3t1/scrapyd-docker/tags) [![Repository issues](http://issuestats.com/github/gp3t1/scrapyd-docker/badge/issue)](http://issuestats.com/github/gp3t1/scrapyd-docker)
+[![0.1.0](http://img.shields.io/github/tag/gp3t1/scrapyd-docker.svg)](https://github.com/gp3t1/scrapyd-docker/tags) [![Repository issues](http://issuestats.com/github/gp3t1/scrapyd-docker/badge/issue)](http://issuestats.com/github/gp3t1/scrapyd-docker)
 
 [Scrapyd](https://github.com/scrapy/scrapyd) docker image
 
